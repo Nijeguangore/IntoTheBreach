@@ -1,5 +1,7 @@
 package main;
 
+import java.awt.event.KeyListener;
+import java.awt.peer.KeyboardFocusManagerPeer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -10,7 +12,7 @@ import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.math.FloatUtil;
 
-public class RenderControl implements GLEventListener {
+public class RenderControl implements GLEventListener{
 	int vertShader,fragShader, prgrmID;
 	String[] vertSrc = {
 			"#version 330 core\n"+
@@ -29,57 +31,61 @@ public class RenderControl implements GLEventListener {
 			"color = vec4(1.0f,1.0f,1.0f,1.0f);\n"+
 			"}\n"
 	};
+	
+	public float[] camLocation = new float[]{0.0f,0.0f,5.0f};
+	
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		GL3 gl = drawable.getGL().getGL3();
 		gl.glClearColor(1.0f, 0.2f, 0.5f, 1.0f);
 		
-		vertShader = gl.glCreateShader(gl.GL_VERTEX_SHADER);
-		gl.glShaderSource(vertShader, vertSrc.length, vertSrc, null);
-		gl.glCompileShader(vertShader);
+		vertShader = createShader(gl,GL3.GL_VERTEX_SHADER,vertSrc);
+		fragShader = createShader(gl,GL3.GL_FRAGMENT_SHADER,fragSrc);
 		
-		IntBuffer success = IntBuffer.wrap(new int[1]);
-		ByteBuffer log = ByteBuffer.wrap(new byte[512]);
+		prgrmID = createProgram(gl,vertShader,fragShader);
 		
-		gl.glGetShaderiv(vertShader, gl.GL_COMPILE_STATUS, success);
-		if(success.get(0) == 0){
-			gl.glGetShaderInfoLog(vertShader, 512, (IntBuffer)null, log);
-			System.out.println(new String(log.array(),Charset.forName("UTF-8")));
+	}
+	
+	private int createProgram(GL3 context, int vertShader,int fragShader){
+		IntBuffer successBuffer = IntBuffer.wrap(new int[1]);
+		
+		int program = context.glCreateProgram();
+		context.glAttachShader(program, vertShader);
+		context.glAttachShader(program, fragShader);
+		context.glLinkProgram(program);
+		
+		context.glGetProgramiv(program, GL3.GL_LINK_STATUS, successBuffer);
+		if(successBuffer.get(0) == 0){
+			ByteBuffer log = ByteBuffer.wrap(new byte[512]);
+
+			context.glGetProgramInfoLog(program, 512, (IntBuffer)null, log);
+			System.err.println(new String(log.array(),Charset.forName("UTF-8")));
+			return -1;
 		}
 		else{
-			System.out.println("Success Vert Compile");
+			return program;
 		}
 		
-		success.rewind(); log.rewind();
+	}
+	
+	private int createShader(GL3 context,int type, String[] src){
+		IntBuffer successBuffer = IntBuffer.wrap(new int[1]);
 		
-		fragShader = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
-		gl.glShaderSource(fragShader, fragSrc.length, fragSrc, null);
-		gl.glCompileShader(fragShader);
+		int shader = context.glCreateShader(type);
+		context.glShaderSource(shader, src.length, src, null);
+		context.glCompileShader(shader);
 		
-		gl.glGetShaderiv(fragShader, gl.GL_COMPILE_STATUS, success);
-		if(success.get(0) == 0){
-			gl.glGetShaderInfoLog(fragShader, 512, (IntBuffer)null, log);
-			System.out.println(new String(log.array(),Charset.forName("UTF-8")));
-		}
-		else{
-			System.out.println("Success Frag Compile");
-		}
-		
-		success.rewind(); log.rewind();
-		prgrmID = gl.glCreateProgram();
-		gl.glAttachShader(prgrmID, vertShader);
-		gl.glAttachShader(prgrmID, fragShader);
-		gl.glLinkProgram(prgrmID);
-		
-		gl.glGetProgramiv(prgrmID, gl.GL_LINK_STATUS, success);
-		if(success.get(0) == 0){
-			gl.glGetProgramInfoLog(prgrmID, 512, (IntBuffer)null, log);
-			 System.out.println(new String(log.array(),Charset.forName("UTF-8")));
+		context.glGetShaderiv(shader, GL3.GL_COMPILE_STATUS, successBuffer);
+		if(successBuffer.get(0) == 0){
+			ByteBuffer log = ByteBuffer.wrap(new byte[512]);
+			context.glGetShaderInfoLog(shader, 512, (IntBuffer)null, log);
+			System.err.println(new String(log.array(),Charset.forName("UTF-8")));
+
+			return -1;
 		}
 		else{
-			System.out.println("Link success");
+			return shader;
 		}
-		
 	}
 
 	@Override
@@ -116,8 +122,9 @@ public class RenderControl implements GLEventListener {
 		gl.glUniformMatrix4fv(matLocation, 1, false, FloatBuffer.wrap(worldSpace));
 		
 		float[] cameraSpace = new float[16];
-		float[] camLocation = new float[]{0.0f,0.5f,10.0f};
+		
 		float[] camLook = new float[]{0.0f,0.5f,0.0f};
+		
 		float[] camUp = new float[]{0.0f,1.0f,0.0f};
 		matLocation = gl.glGetUniformLocation(prgrmID, "cameraSpace");
 		FloatUtil.makeIdentity(cameraSpace);
