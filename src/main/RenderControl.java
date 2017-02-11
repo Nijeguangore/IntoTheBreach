@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLAutoDrawable;
@@ -36,6 +37,8 @@ public class RenderControl implements GLEventListener{
 	public float[] camLocation = new float[]{0.0f,0.0f,5.0f};
 	public float[] camLook = new float[]{0.0f,0.0f,-1.0f};
 	public float[] camUp = new float[]{0.0f,1.0f,0.0f};
+	
+	public ArrayList<GL3dObject> objectsToRender = new ArrayList<>();
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		GL3 gl = drawable.getGL().getGL3();
@@ -101,8 +104,48 @@ public class RenderControl implements GLEventListener{
 		GL3 gl = drawable.getGL().getGL3();
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT);
 		
-		float[] vertices = { -0.5f,0.0f,0.0f, 0.5f,0.0f,0.0f, 0.0f,0.5f,0.0f};
-		int[] indices = {0,1,2};
+		int faceVertCount = 0;
+		
+		for(GL3dObject obj : objectsToRender){
+			int[] VBO = new int[1];
+			int[] EBO = new int[1];
+			
+			int vertexCount = obj.vertexes.size()*3;
+			float[] vertexData = new float[vertexCount];
+			for(int i = 0 ; i < vertexCount ; i++){
+				int index = i/3;
+				int vertex = i%3;
+				vertexData[i] = obj.getVertexes().get(index).getVertex(vertex);
+			}
+			
+			faceVertCount = obj.faces.size()*3;
+			int[] faceArray = new int[faceVertCount];
+			for(int i = 0; i < faceVertCount; i++){
+				int index = i/3;
+				int vertex = i%3;
+				
+				faceArray[i] = obj.getFaces().get(index).getVertex(vertex);
+			}
+			gl.glGenBuffers(1, EBO,0);
+			gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
+			gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, faceVertCount*4, IntBuffer.wrap(faceArray), gl.GL_STATIC_DRAW);
+			
+			
+			gl.glGenBuffers(1, VBO,0);
+			gl.glBindBuffer(gl.GL_ARRAY_BUFFER, VBO[0]);
+			gl.glBufferData(gl.GL_ARRAY_BUFFER, vertexCount*4, FloatBuffer.wrap(vertexData), gl.GL_STATIC_DRAW);
+		
+		}
+		
+		
+		
+		//prepObjects(gl);
+		/*
+		float[] vertices = { -0.5f,0.0f,0.0f, 0.5f,0.0f,0.0f, 0.0f,0.5f,0.0f, 
+				0.0f,0.5f,0.5f, -0.5f,0.0f,0.5f, 0.5f,0.0f,0.5f
+				
+		};
+		int[] indices = {0,1,2, 4,5,3};
 		int[] VBO = new int[1];
 		int[] EBO = new int[1];
 		
@@ -114,7 +157,7 @@ public class RenderControl implements GLEventListener{
 		gl.glGenBuffers(1, VBO,0);
 		gl.glBindBuffer(gl.GL_ARRAY_BUFFER, VBO[0]);
 		gl.glBufferData(gl.GL_ARRAY_BUFFER, vertices.length*4, FloatBuffer.wrap(vertices), gl.GL_STATIC_DRAW);
-		
+		*/
 		gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, false, 0, 0);
 		gl.glUseProgram(prgrmID);
 		
@@ -144,7 +187,7 @@ public class RenderControl implements GLEventListener{
 		
 		gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
 		
-		gl.glDrawElements(gl.GL_TRIANGLES,3,gl.GL_UNSIGNED_INT, 0);
+		gl.glDrawElements(gl.GL_TRIANGLES,faceVertCount,gl.GL_UNSIGNED_INT, 0);
 	}	
 
 	@Override
@@ -153,4 +196,40 @@ public class RenderControl implements GLEventListener{
 
 	}
 
+	public void addObject(GL3dObject newObject){
+		objectsToRender.add(newObject);
+	}
+	
+	private void prepObjects(GL3 context){
+		for(GL3dObject obj : objectsToRender){
+			int[] VBO = new int[1];
+			int[] EBO = new int[1];
+			
+			int vertexCount = obj.vertexes.size()*3;
+			float[] vertexData = new float[vertexCount];
+			for(int i = 0 ; i < vertexCount ; i++){
+				int index = i/3;
+				int vertex = i%3;
+				vertexData[i] = obj.getVertexes().get(index).getVertex(vertex);
+			}
+			
+			int faceVertCount = obj.faces.size()*3;
+			int[] faceArray = new int[faceVertCount];
+			for(int i = 0; i < faceVertCount; i++){
+				int index = i/3;
+				int vertex = i%3;
+				
+				faceArray[i] = obj.getFaces().get(index).getVertex(vertex);
+			}
+			context.glGenBuffers(1, EBO,0);
+			context.glBindBuffer(context.GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
+			context.glBufferData(context.GL_ELEMENT_ARRAY_BUFFER, faceVertCount*4, IntBuffer.wrap(faceArray), context.GL_STATIC_DRAW);
+			
+			
+			context.glGenBuffers(1, VBO,0);
+			context.glBindBuffer(context.GL_ARRAY_BUFFER, VBO[0]);
+			context.glBufferData(context.GL_ARRAY_BUFFER, vertexCount*4, FloatBuffer.wrap(vertexData), context.GL_STATIC_DRAW);
+		
+		}
+	}
 }

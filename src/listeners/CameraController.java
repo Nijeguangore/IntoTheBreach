@@ -18,7 +18,8 @@ public class CameraController extends MouseMotionAdapter implements KeyListener 
 	private float yaw = -90.0f;
 	private boolean initMouse = false;
 	private boolean endProg = false;
-	@Override
+	
+	@Override	
 	public void keyTyped(KeyEvent e) {
 		// TODO Auto-generated method stub
 
