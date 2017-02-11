@@ -11,6 +11,7 @@ import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.math.FloatUtil;
+import com.jogamp.opengl.math.VectorUtil;
 
 public class RenderControl implements GLEventListener{
 	int vertShader,fragShader, prgrmID;
@@ -33,7 +34,8 @@ public class RenderControl implements GLEventListener{
 	};
 	
 	public float[] camLocation = new float[]{0.0f,0.0f,5.0f};
-	
+	public float[] camLook = new float[]{0.0f,0.0f,-1.0f};
+	public float[] camUp = new float[]{0.0f,1.0f,0.0f};
 	@Override
 	public void init(GLAutoDrawable drawable) {
 		GL3 gl = drawable.getGL().getGL3();
@@ -123,12 +125,13 @@ public class RenderControl implements GLEventListener{
 		
 		float[] cameraSpace = new float[16];
 		
-		float[] camLook = new float[]{0.0f,0.5f,0.0f};
 		
-		float[] camUp = new float[]{0.0f,1.0f,0.0f};
+		float[] gazeVector = new float[3];
+		VectorUtil.addVec3(gazeVector, camLocation, camLook);
+		
 		matLocation = gl.glGetUniformLocation(prgrmID, "cameraSpace");
 		FloatUtil.makeIdentity(cameraSpace);
-		FloatUtil.makeLookAt(cameraSpace, 0, camLocation , 0, camLook, 0,camUp, 0, new float[16]);
+		FloatUtil.makeLookAt(cameraSpace, 0, camLocation , 0, gazeVector, 0,camUp, 0, new float[16]);
 		gl.glUniformMatrix4fv(matLocation, 1, false, FloatBuffer.wrap(cameraSpace));
 		
 		float[] clipSpace = new float[16];
