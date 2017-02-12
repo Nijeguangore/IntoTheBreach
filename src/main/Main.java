@@ -48,7 +48,28 @@ public class Main {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+		try {
+			Scanner shipScanner = new Scanner(new File("tsquare.obj"));
+			GL3dObject scannedObject = new GL3dObject();
+			while(shipScanner.hasNextLine()){
+				String lineToken = shipScanner.nextLine();
+				String[] lineSplit = lineToken.split(" ");
+				if(lineSplit[0].equals("v")){
+					scannedObject.addVertex(lineSplit[1],lineSplit[2],lineSplit[3]);
+				}
+				else if(lineSplit[0].equals("f")){
+					String[] firstToken = lineSplit[1].split("//");
+					String[] secondToken = lineSplit[2].split("//");
+					String[] thirdToken = lineSplit[3].split("//");
+					
+					scannedObject.addFace(firstToken[0],secondToken[0],thirdToken[0]);
+				}
+			}
+			mainRenderer.addObject(scannedObject);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		while(cameraControl.doRender()){
 			cameraControl.updateCamera(mainRenderer);
 			newCanvas.display();
