@@ -105,44 +105,48 @@ public class RenderControl implements GLEventListener{
 		GL3 gl = drawable.getGL().getGL3();
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT);
 		
-		int faceVertCount = 30;
+		prepObjects(gl);
+
 		
-		
-		
-		int[] buffers = prepObjects(gl);
-		
-		gl.glBindVertexArray(buffers[1]);
-		
-		gl.glUseProgram(prgrmID);
-		
-		float[] worldSpace = new float[16];
-		int matLocation = gl.glGetUniformLocation(prgrmID, "worldSpace");
-		FloatUtil.makeIdentity(worldSpace);
-		gl.glUniformMatrix4fv(matLocation, 1, false, FloatBuffer.wrap(worldSpace));
 		
 		float[] cameraSpace = new float[16];
-		
-		
 		float[] gazeVector = new float[3];
 		VectorUtil.addVec3(gazeVector, camLocation, camLook);
 		
-		matLocation = gl.glGetUniformLocation(prgrmID, "cameraSpace");
+		int matLocation = gl.glGetUniformLocation(prgrmID, "cameraSpace");
 		FloatUtil.makeIdentity(cameraSpace);
 		FloatUtil.makeLookAt(cameraSpace, 0, camLocation , 0, gazeVector, 0,camUp, 0, new float[16]);
 		gl.glUniformMatrix4fv(matLocation, 1, false, FloatBuffer.wrap(cameraSpace));
+		
+		
+		
+		
+		gl.glUseProgram(prgrmID);
+		
+		gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
+		
+		for(int i = 0 ; i < objectsToRender.size() ; i ++){
+			gl.glBindVertexArray(objectsToRender.get(i).VAO[0]);
+			
+			float[] transForm = objectsToRender.get(i).getPosition();
+			
+			float[] worldSpace = new float[16];
+			int worldUniformLocation = gl.glGetUniformLocation(prgrmID, "worldSpace");
+			FloatUtil.makeTranslation(worldSpace, false,transForm[0] , transForm[1], transForm[2]);
+			gl.glUniformMatrix4fv(worldUniformLocation, 1, false, FloatBuffer.wrap(worldSpace));
+			
+			gl.glDrawElements(gl.GL_TRIANGLES,objectsToRender.get(i).faces.size()*3,gl.GL_UNSIGNED_INT, 0);
+		}
 		
 		float[] clipSpace = new float[16];
 		FloatUtil.makePerspective(clipSpace, 0, true, 45.0f, 1200/900,0.01f,100.0f);
 		matLocation = gl.glGetUniformLocation(prgrmID, "clipSpace");
 		gl.glUniformMatrix4fv(matLocation, 1, false, FloatBuffer.wrap(clipSpace));
+		//gl.glBindVertexArray(buffers[0]);
 		
 		
-		gl.glEnableVertexAttribArray(0);
-		
-		gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
-		
-		gl.glDrawElements(gl.GL_TRIANGLES,faceVertCount,gl.GL_UNSIGNED_INT, 0);
-		
+		//gl.glBindVertexArray(buffers[1]);
+		//gl.glDrawElements(gl.GL_TRIANGLES,faceVertCount,gl.GL_UNSIGNED_INT, 0);
 		
 	}	
 
@@ -152,17 +156,17 @@ public class RenderControl implements GLEventListener{
 
 	}
 
-	public void addObject(GL3dObject newObject){
-		objectsToRender.add(newObject);
+	public void setObjects(ArrayList<GL3dObject> newObjects){
+		objectsToRender = newObjects;
 	}
 	
-	private int[] prepObjects(GL3 context){
-		int[] buffers = new int[objectsToRender.size()];
-		int[] psudoBuffers= new int[2];
+	private void prepObjects(GL3 context){
+		//int[] buffers = new int[objectsToRender.size()];
+		int[] temporaryBuffers= new int[2];
 		for(int i = 0 ; i < objectsToRender.size(); i++){
-			context.glGenVertexArrays(1, buffers, i);
+			context.glGenVertexArrays(1, objectsToRender.get(i).VAO, 0);
 			
-			context.glBindVertexArray(buffers[i]);
+			context.glBindVertexArray(objectsToRender.get(i).VAO[0]);
 			
 			int vertexCount = objectsToRender.get(i).vertexes.size()*3;
 			float[] vertexData = new float[vertexCount];
@@ -180,18 +184,19 @@ public class RenderControl implements GLEventListener{
 				
 				faceArray[j] = objectsToRender.get(i).getFaces().get(index).getVertex(vertex);
 			}
-			context.glGenBuffers(1, psudoBuffers,0);
-			context.glBindBuffer(context.GL_ELEMENT_ARRAY_BUFFER, psudoBuffers[0]);
+			context.glGenBuffers(1, temporaryBuffers,0);
+			context.glBindBuffer(context.GL_ELEMENT_ARRAY_BUFFER, temporaryBuffers[0]);
 			context.glBufferData(context.GL_ELEMENT_ARRAY_BUFFER, faceVertCount*4, IntBuffer.wrap(faceArray), context.GL_STATIC_DRAW);
 			
 			
-			context.glGenBuffers(1, psudoBuffers,1);
-			context.glBindBuffer(context.GL_ARRAY_BUFFER, psudoBuffers[1]);
+			context.glGenBuffers(1, temporaryBuffers,1);
+			context.glBindBuffer(context.GL_ARRAY_BUFFER, temporaryBuffers[1]);
 			context.glBufferData(context.GL_ARRAY_BUFFER, vertexCount*4, FloatBuffer.wrap(vertexData), context.GL_STATIC_DRAW);
 
 			context.glVertexAttribPointer(0, 3, context.GL_FLOAT, false, 0, 0);
+			context.glEnableVertexAttribArray(0);
 			context.glBindVertexArray(0);
 		}
-		return buffers;
+		return;
 	}
 }

@@ -7,6 +7,20 @@ public class GL3dObject {
 
 	ArrayList<Vertex> vertexes = new ArrayList<>();
 	ArrayList<Face> faces = new ArrayList<>();
+	public int[] VAO = new int[1];
+	private float[] position = new float[3];
+	
+	public GL3dObject() {
+		position[0] = 0;
+		position[1] = 0.3f;
+		position[2] = 0.0f;
+	}
+	
+	
+	
+	public float[] getPosition(){
+		return position;
+	}
 	
 	public void addVertex(String string, String string2, String string3) {
 		Vertex newVertex = new Vertex(Float.parseFloat(string),Float.parseFloat(string2),Float.parseFloat(string3));
